@@ -1,5 +1,5 @@
-use duplicate_detection;
+// use duplicate_detection;
 
 fn main() {
-    duplicate_detection::print();
+    duplicate_detection::print().unwrap();
 }
