@@ -7,15 +7,12 @@ class MainWindow : public QMainWindow {
   Q_OBJECT
 
 public:
-  static MainWindow* get_instance();
-  ~MainWindow(){
-        instanceFlag = false;
-    }
+  //static MainWindow* get_instance();
+  MainWindow(QWidget *parent = nullptr);
 
 private slots:
-  MainWindow(QWidget *parent = nullptr);
-  static bool instanceFlag;
-  static MainWindow *single;
+  //static bool instanceFlag;
+  //static MainWindow *single;
   void onClick();
 
 private:

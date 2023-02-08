@@ -6,9 +6,8 @@
 int main(int argc, char **argv) {
   QApplication app(argc, argv);
 
-  MainWindow *mainWindow;
-  mainWindow = MainWindow::get_instance();
-  mainWindow->show();
+  MainWindow mainWindow;
+  mainWindow.show();
 
   app.exec();
 }

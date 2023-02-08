@@ -18,6 +18,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   connect(button, SIGNAL(released()), this, SLOT(onClick()));
 }
 
+/**
+bool MainWindow::instanceFlag = false;
+MainWindow* MainWindow::single = NULL;
+
 MainWindow* MainWindow::get_instance()
 {
     if(! instanceFlag)
@@ -31,3 +35,4 @@ MainWindow* MainWindow::get_instance()
         return single;
     }
 }
+*/
