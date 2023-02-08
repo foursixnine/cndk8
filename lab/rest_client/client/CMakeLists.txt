@@ -1,12 +1,12 @@
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CARGO_CMD cargo build)
-    set(TARGET_DIR "debug")
-else ()
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CARGO_CMD cargo build --release)
     set(TARGET_DIR "release")
+else ()
+    set(CARGO_CMD cargo build )
+    set(TARGET_DIR "debug")
 endif ()
 
-set(CLIENT_SO "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_DIR}/libclient.so")
+set(CLIENT_SO "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_DIR}/libclient.dylib")
 
 add_custom_target(client ALL
     COMMENT "Compiling client module"
