@@ -6,12 +6,15 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 find_package(Qt6Widgets)
+find_package(VulkanHeaders)
 
-get_target_property(CLIENT_DIR client LOCATION)
-add_executable(gui ${SOURCE})
-add_dependencies(gui client)
 
 set(SOURCE main_window.cpp main_window.hpp main.cpp)
+add_executable(gui ${SOURCE})
+
+get_target_property(CLIENT_DIR client LOCATION)
 target_link_libraries(gui Qt6::Widgets)
 target_link_libraries(gui ${CLIENT_DIR}/libclient.dylib)
 
+
+add_dependencies(gui client)
