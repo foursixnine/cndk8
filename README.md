@@ -22,3 +22,16 @@ Application spawns a webservice and bot is a separate service, both start togeth
   - Build drag and drop for file upload
   - List uploaded files for a user
 - Rate limiting is built in for unauthenticated requests.
+
+### BUILDING
+
+```
+git clone https://github.com/corrosion-rs/corrosion.git
+# Optionally, specify -DCMAKE_INSTALL_PREFIX=<target-install-path>. You can install Corrosion anyway
+cmake -Scorrosion -Bbuild -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+# This next step may require sudo or admin privileges if you're installing to a system location,
+# which is the default.
+cmake --install build --config Release
+```
+
