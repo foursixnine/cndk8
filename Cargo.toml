@@ -5,6 +5,7 @@ edition = "2021"
 
 [workspace]
 members = ["duplicate_detection"]
+exclude = ["lab/"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 
