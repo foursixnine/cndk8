@@ -122,7 +122,7 @@ async fn handle_message(bot: Bot, _dialogue: MyDialogue, msg: Message) -> Handle
                 }
                 MediaKind::Photo(content) => {
                     bot.send_message(msg.chat.id, "Got Photo!").await?;
-                    log::info!("{}", content.caption.unwrap());
+                    log::debug!("{:?}", content.caption.unwrap());
                 }
                 _ => {
                     bot.send_message(msg.chat.id, "Media::Kind Type not implemented")
