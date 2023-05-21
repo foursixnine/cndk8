@@ -1,0 +1,29 @@
+[package]
+name = "telegram"
+version = "0.1.0"
+edition = "2021"
+
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+# [features]
+# default = ["native-tls", "ctrlc_handler", "teloxide-core/default",  "auto-send"]
+# sqlite-storage = ["sqlx", "sqlx/runtime-tokio-native-tls", "native-tls"]
+
+
+
+[dependencies]
+teloxide = { version = "0.12", features = ["macros"] }
+log = "0.4"
+pretty_env_logger = "0.4"
+tokio = { version =  "1.8", features = ["rt-multi-thread", "macros"] }
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+reqwest = "0.11.16"
+url = "2.3.1"
+scraper = "0.16.0"
+
+[dev-dependencies]
+mockito = "1.0.2"
+tokio-test = "0.4.2"
