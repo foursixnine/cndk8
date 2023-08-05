@@ -1,3 +1,4 @@
+use mime::Mime;
 use std::fs::OpenOptions;
 use std::io::{self, Write};
 use teloxide::{
@@ -6,6 +7,12 @@ use teloxide::{
     types::{MediaKind, MediaText, Message, MessageEntityKind, MessageId, MessageKind},
     utils::command::BotCommands,
 };
+
+use reqwest::header::*;
+
+extern crate mime;
+
+use scraper::{Html, Selector};
 use url::Url;
 
 type MyDialogue = Dialogue<State, InMemStorage<State>>;
@@ -37,6 +44,8 @@ enum Command {
     Start,
     #[command(description = "cancel stuff")]
     Cancel,
+    #[command(description = "flower stuff")]
+    Flower,
 }
 
 #[derive(Clone)]
@@ -69,6 +78,7 @@ fn update_handler() -> UpdateHandler<Box<dyn std::error::Error + Send + Sync + '
     let command_handler = teloxide::filter_command::<Command, _>()
         .branch(case![Command::Start].endpoint(start))
         .branch(case![Command::Help].endpoint(help))
+        .branch(case![Command::Flower].endpoint(flower))
         .branch(case![Command::Cancel].endpoint(cancel));
 
     let message_handler = Update::filter_message()
@@ -93,6 +103,11 @@ async fn cancel(bot: Bot, msg: Message) -> HandlerResult {
     Ok(())
 }
 
+async fn flower(bot: Bot, msg: Message) -> HandlerResult {
+    bot.send_message(msg.chat.id, "hi").await?;
+    Ok(())
+}
+
 async fn start(bot: Bot, _dialogue: MyDialogue, msg: Message) -> HandlerResult {
     bot.send_message(msg.chat.id, "This is the start").await?;
     Ok(())
@@ -100,6 +115,7 @@ async fn start(bot: Bot, _dialogue: MyDialogue, msg: Message) -> HandlerResult {
 
 async fn handle_message(bot: Bot, _dialogue: MyDialogue, msg: Message) -> HandlerResult {
     bot.send_message(msg.chat.id, "This is the handle_message")
+        .reply_to_message_id(msg.id)
         .await?;
 
     let _is_owner = |msg: &Message| {
@@ -121,11 +137,14 @@ async fn handle_message(bot: Bot, _dialogue: MyDialogue, msg: Message) -> Handle
                     handle_text_content(bot, msg.chat.id, msg.id, Some(content)).await?;
                 }
                 MediaKind::Photo(content) => {
-                    bot.send_message(msg.chat.id, "Got Photo!").await?;
-                    log::debug!("{:?}", content.caption.unwrap());
+                    bot.send_message(msg.chat.id, "Got Photo!")
+                        .reply_to_message_id(msg.id)
+                        .await?;
+                    log::debug!("{:#?}", content.caption.unwrap());
                 }
                 _ => {
                     bot.send_message(msg.chat.id, "Media::Kind Type not implemented")
+                        .reply_to_message_id(msg.id)
                         .await?;
                     log::debug!("{:#?} not implemented", chat);
                     // log::debug!("{:#?} not implemented", msg);
@@ -135,6 +154,7 @@ async fn handle_message(bot: Bot, _dialogue: MyDialogue, msg: Message) -> Handle
         // _ => todo!(), //todo for msg kind
         _ => {
             bot.send_message(msg.chat.id, "MessageKind not implemented")
+                .reply_to_message_id(msg.id)
                 .await?;
         } //todo!(), // todo for media_kind
     };
@@ -148,7 +168,10 @@ async fn handle_text_content(
     message_id: MessageId,
     message_text: Option<MediaText>,
 ) -> HandlerResult {
-    bot.send_message(chat_id, "Got text").await?;
+    bot.send_message(chat_id, "Got text")
+        .reply_to_message_id(message_id)
+        .await?;
+
     let content = message_text.unwrap();
     log::info!("text: {}", content.text);
     log::debug!("object: {:#?}", content);
@@ -169,20 +192,26 @@ async fn handle_text_content(
             log::debug!("{:#?} not implemented", e.kind);
             log::debug!("{:#?} not implemented", e);
             false
-        }
-        // Some(MessageEntityKind::TextLink) => true,
+        } // Some(MessageEntityKind::TextLink) => true,
     }) {
+        // TODO: thread 'tokio-runtime-worker' panicked at 'failed trying to parse >: https://thght.works/3vZX6<: RelativeUrlWithoutBase', telegram/src/main.rs:219:40
         let text_url = &content.text[entity.offset..entity.offset + entity.length];
-        let text_part = &content.text[0..entity.offset].trim();
-        let title_url = get_website_title(text_url).await?;
+        let text_part = &content.text[0..entity.offset];
+        let title_url = match get_website_title(text_url).await {
+            Ok(title) => title.to_string(),
+            Err(e) => {
+                log::debug!("{:?}\n error invoked from {}", e, line!());
+                "error in url".to_string()
+            }
+        };
 
         let markdown;
         let real_url = &text_url.to_string();
         let real_tex = &content.text.to_string();
         if real_url != real_tex {
-            markdown = format!("- {} [{}]({})\n", text_part, title_url, text_url);
+            markdown = format!("- {} [{}]({})\n", text_part, title_url.trim(), text_url);
         } else {
-            markdown = format!("- [{}]({})\n", title_url, text_url);
+            markdown = format!("- [{}]({})\n", title_url.trim(), text_url);
         };
         // let markdown = format!(format, text_part, text_url, entity.kind);
         log::debug!("will insert:");
@@ -213,11 +242,27 @@ fn append_to_brain(text: &str) -> io::Result<()> {
 }
 
 async fn get_website_title(url: &str) -> Result<String, reqwest::Error> {
-    let this_url = Url::parse(url).unwrap();
+    let this_url = match Url::parse(url) {
+        Ok(result) => result,
+        Err(..) => match Url::parse("foursixnine.io") {
+            Ok(result) => result,
+            Err(e) => panic!("Can't recover '{:#?}'\nurl:{}", e, url),
+        },
+    };
+
     let title;
     let host = this_url.host_str();
     match host {
         Some("onlyfans.com") => {
+            title = format!(
+                "OF of {}",
+                this_url
+                    .path_segments()
+                    .expect("broken")
+                    .collect::<Vec<_>>()[0]
+            )
+        }
+        Some("instagram.com") => {
             title = format!(
                 "OF of {}",
                 this_url
@@ -250,23 +295,51 @@ async fn get_website_title(url: &str) -> Result<String, reqwest::Error> {
             // Parse the title from the HTML
             // Send GET request to the specified URL
             let response = reqwest::get(url).await?;
+
+            // response.headers();
+
             // Read the response body as bytes
             let body_str = response.text().await?;
-            title = parse_website_title(&body_str)
+            title = parse_website_title(&body_str);
         }
     }
 
     Ok(title)
 }
 
+// trait From<T> :Sized {
+//     fn from(&self) -> Self;
+// }
+
+fn mimetype_has_title(content_type: HeaderValue) -> bool {
+    // let mime_type: Mime = content_type;
+
+    // match mime_type {
+    //     Some(mime::TEXT_HTML) => true,
+    //     _ => false,
+    //     None => panic!("No type found for: {:#?}", content_type),
+    // }
+    todo!("Not implemented");
+}
+
 fn parse_website_title(html: &str) -> String {
     // let document = Html::parse_document(&html);
     // let selector = Selector::parse("title");
     // Extract the title from the HTML using simple string manipulation
-    let start_index = html.find("<title>").unwrap_or(0) + 7;
-    let end_index = html.find("</title>").unwrap_or(html.len());
+    let document = Html::parse_document(html);
+    let title_selector = Selector::parse("title").unwrap();
+    let title_text = document
+        .select(&title_selector)
+        .next()
+        .map(|x| x.inner_html());
 
-    html[start_index..end_index].to_string()
+    let binding = title_text.expect("No title found in HTML document");
+    let title_string = binding.trim();
+    log::debug!(
+        "Looks like a title was found, but site had to be parsed: {}",
+        line!()
+    );
+    title_string.to_string()
 }
 
 #[cfg(test)]
@@ -277,10 +350,14 @@ mod tests {
     #[tokio::test]
     pub async fn test_parse_website_title() {
         // Test case 1: HTML with a valid title tag
-        let html1 = "<html><title>Test Title</title></html>";
+        let html1 = "<html><title> Test Title   </title></html>";
         let title1 = parse_website_title(html1);
         assert_eq!(title1, "Test Title");
+    }
 
+    #[tokio::test]
+    #[should_panic]
+    pub async fn test_parse_website_title_errors() {
         // Test case 2: HTML without a title tag
         let html2 = "<html><h1>Test Heading</h1></html>";
         let title2 = parse_website_title(html2);
@@ -304,4 +381,31 @@ mod tests {
         expected = "Tweet from foursixnine";
         assert_eq!(expected, the_response);
     }
+
+    #[tokio::test]
+    #[should_panic]
+    pub async fn test_get_website_title_invalid_url() {
+        let _url = "g https://twitter.com/aakashg0/status/1666962728055889920?s=52&t=scqAqSz4d-mfoKQNQq-fv";
+        let the_response = get_website_title(_url).await.unwrap();
+        let expected = "Broken link";
+        assert_eq!(expected, the_response);
+    }
+
+    // #[test]
+    // fn test_process_header_mimetype() {
+    //     // let mut map = HeaderMap::new();
+    //     let current_mime = HeaderValue::from_static(&mime::TEXT_HTML.to_string());
+    //     // map.append(CONTENT_TYPE, current_mime);
+    //     // assert_eq!(map.get(CONTENT_TYPE).unwrap(), mime::TEXT_HTML.to_string())
+    //     let result = mimetype_has_title(current_mime);
+    //     //assert!(result, true);
+    // }
+
+    //
+    // * “One good test is worth a thousand expert opinions.” \n
+    // * – Wernher von Braun @ twitter https://test.com
+    // *
+    // * thght.works/3ghJZ9t => problem
+    // thread 'tokio-runtime-worker' panicked at 'failed trying to parse >: https://thght.works/3vZX6<: RelativeUrlWithoutBase', telegram/src/main.rs:219:40
+    // * */
 }
