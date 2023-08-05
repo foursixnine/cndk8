@@ -1,0 +1,3 @@
+#!/usr/bin/env bash -e
+source telegram/.env || (echo "can't rum bot, token not found" && exit 2)
+RUST_LOG=debug cargo run  -p telegram |& tee telegram/tgrun-$(date +%s).log
