@@ -262,6 +262,15 @@ async fn get_website_title(url: &str) -> Result<String, reqwest::Error> {
                     .collect::<Vec<_>>()[0]
             )
         }
+        Some("fansly.com") => {
+            title = format!(
+                "FSL of {}",
+                this_url
+                    .path_segments()
+                    .expect("broken")
+                    .collect::<Vec<_>>()[0]
+            )
+        }
         Some("instagram.com") => {
             title = format!(
                 "OF of {}",
@@ -271,7 +280,7 @@ async fn get_website_title(url: &str) -> Result<String, reqwest::Error> {
                     .collect::<Vec<_>>()[0]
             )
         }
-        Some("twitter.com") => {
+        Some("twitter.com") | Some("x.com") => {
             title = format!(
                 "Tweet from {}",
                 this_url
@@ -375,6 +384,11 @@ mod tests {
         let mut the_response = get_website_title(_url).await.unwrap();
         let mut expected = "OF of pepe";
         assert_eq!(expected, the_response);
+
+
+        _url = "https//fansly.com/happyhooha/posts";
+        the_response = get_website_title(_url).await.unwrap();
+        expected = "FSL of happyhooha";
 
         _url = "https://twitter.com/foursixnine/status/1074685619618623490?s=20";
         the_response = get_website_title(_url).await.unwrap();
