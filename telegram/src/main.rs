@@ -1,4 +1,4 @@
-use mime::Mime;
+
 use std::fs::OpenOptions;
 use std::io::{self, Write};
 use teloxide::{
@@ -320,7 +320,7 @@ async fn get_website_title(url: &str) -> Result<String, reqwest::Error> {
 //     fn from(&self) -> Self;
 // }
 
-fn mimetype_has_title(content_type: HeaderValue) -> bool {
+fn mimetype_has_title(_content_type: HeaderValue) -> bool {
     // let mime_type: Mime = content_type;
 
     // match mime_type {
