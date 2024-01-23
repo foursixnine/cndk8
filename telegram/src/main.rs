@@ -1,12 +1,13 @@
-
 use std::fs::OpenOptions;
 use std::io::{self, Write};
 use teloxide::{
     dispatching::{dialogue, dialogue::InMemStorage, UpdateHandler},
     prelude::*,
-    types::{MediaKind, MediaText, Message, MessageEntityKind, MessageId, MessageKind},
+    types::{MediaKind, File, MediaText, Message, MessageEntityKind, MessageId, MessageKind, MediaPhoto, ChatId, UserId},
     utils::command::BotCommands,
+    net::Download,
 };
+use tokio::fs;
 
 use reqwest::header::*;
 
@@ -140,7 +141,9 @@ async fn handle_message(bot: Bot, _dialogue: MyDialogue, msg: Message) -> Handle
                     bot.send_message(msg.chat.id, "Got Photo!")
                         .reply_to_message_id(msg.id)
                         .await?;
-                    log::debug!("{:#?}", content.caption.unwrap());
+                    handle_photo_content(bot, msg.chat.id, msg.id, Some(content.clone())).await?;
+                    log::debug!("{:#?}", content);
+                    // to download the photo
                 }
                 _ => {
                     bot.send_message(msg.chat.id, "Media::Kind Type not implemented")
@@ -159,6 +162,44 @@ async fn handle_message(bot: Bot, _dialogue: MyDialogue, msg: Message) -> Handle
         } //todo!(), // todo for media_kind
     };
     // }
+    Ok(())
+}
+
+async fn handle_photo_content(
+    bot: Bot,
+    chat_id: ChatId,
+    message_id: MessageId,
+    message_photo: Option<MediaPhoto>,
+) -> HandlerResult {
+    bot.send_message(chat_id, "Got Photo!")
+        .reply_to_message_id(message_id)
+        .await?;
+    let content = message_photo.unwrap();
+    log::info!("photo: {:#?}", content);
+    // log::debug!("object: {:#?}", content);
+    let photo = content.photo.last().unwrap();
+    let file = bot.get_file(photo.file.id.clone()).await?;
+    let file_id = file.path.clone();
+    let file_name = file_id.split('/').last().unwrap();
+    let file_path = format!("./tmp/tg/{}", file_name);
+    log::debug!("file_path: {}", file_path);
+    fs::create_dir_all("./tmp/tg/").await?;
+    let mut file = fs::File::create(file_path.clone()).await?;
+    log::debug!("Debugging file:\n{:#?}", file);
+    bot.download_file(&file_id, &mut file).await?;
+    let markdown = format!("- ![{}]({})\n", &file_path, &file_path);
+    // let markdown = format!(format, text_part, text_url, entity.kind);
+    log::debug!("will insert:");
+    log::debug!("{}", markdown);
+    // log::info!("object: {:#?}", full_url);
+    match append_to_brain(&markdown) {
+        Ok(()) => {
+            bot.send_message(chat_id, "Saved!")
+                .reply_to_message_id(message_id)
+                .await?
+        }
+        _ => panic!("{:?}", &markdown),
+    };
     Ok(())
 }
 
@@ -421,5 +462,17 @@ mod tests {
     // *
     // * thght.works/3ghJZ9t => problem
     // thread 'tokio-runtime-worker' panicked at 'failed trying to parse >: https://thght.works/3vZX6<: RelativeUrlWithoutBase', telegram/src/main.rs:219:40
+    //
+    // // This has to be converted to a json object
+	// DEBUG telegram                          > object: MediaText {
+	//    text: "Santiago Zarate, [Jul 8, 2023 at 20:32]\nhttps://www.reddit.com/user/Remarkable-Goat-973/",
+	//    entities: [
+	//        MessageEntity {
+	//            kind: Url,
+	//            offset: 40,
+	//            length: 48,
+	//        },
+	//    ],
+	//}
     // * */
 }
