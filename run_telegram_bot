@@ -1,4 +1,5 @@
 #!/usr/bin/env bash -e
-set LOGLEVEL=${LOGLEVEL:-info}
+set LOGLEVEL=${LOGLEVEL:="info"}
+set TARGET=${TARGET:="-r"}
 source telegram/.env || (echo "can't rum bot, token not found" && exit 2)
-RUST_LOG=$LOGLEVEL cargo run -p telegram |& tee log/tgrun-$(date +%s).log
+RUST_LOG=$LOGLEVEL cargo run ${TARGET} -p telegram |& tee log/tgrun-$(date +%s).log
