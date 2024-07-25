@@ -1,20 +1,31 @@
+use reqwest::header::*;
 use std::fs::OpenOptions;
 use std::io::{self, Write};
 use teloxide::{
     dispatching::{dialogue, dialogue::InMemStorage, UpdateHandler},
-    prelude::*,
-    types::{MediaKind, File, MediaText, Message, MessageEntityKind, MessageId, MessageKind, MediaPhoto, ChatId, UserId},
-    utils::command::BotCommands,
     net::Download,
+    prelude::*,
+    types::{
+        ChatId, MediaKind, MediaPhoto, MediaText, Message, MessageEntityKind, MessageId,
+        MessageKind, UserId,
+    },
+    utils::command::BotCommands,
 };
 use tokio::fs;
-
-use reqwest::header::*;
 
 extern crate mime;
 
 use scraper::{Html, Selector};
 use url::Url;
+
+// fn _get_api_key() -> String {
+//     match std::env::var("HETZNER_API_KEY") {
+//         Ok(key) => key,
+//         Err(_) => {
+//             panic!("Please set the HETZNER_API_KEY environment variable");
+//         }
+//     }
+// }
 
 type MyDialogue = Dialogue<State, InMemStorage<State>>;
 type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
@@ -115,7 +126,8 @@ async fn start(bot: Bot, _dialogue: MyDialogue, msg: Message) -> HandlerResult {
 }
 
 async fn handle_message(bot: Bot, _dialogue: MyDialogue, msg: Message) -> HandlerResult {
-    bot.send_message(msg.chat.id, "This is the handle_message")
+    let hm = bot
+        .send_message(msg.chat.id.clone(), "This is the handle_message")
         .reply_to_message_id(msg.id)
         .await?;
 
@@ -131,18 +143,20 @@ async fn handle_message(bot: Bot, _dialogue: MyDialogue, msg: Message) -> Handle
     if !_is_owner(&msg) {
         return Ok(());
     }
+
     match msg.kind {
         MessageKind::Common(chat) => {
             match chat.media_kind {
                 MediaKind::Text(content) => {
-                    handle_text_content(bot, msg.chat.id, msg.id, Some(content)).await?;
+                    handle_text_content(bot.clone(), msg.chat.id, msg.id, Some(content)).await?;
                 }
                 MediaKind::Photo(content) => {
                     bot.send_message(msg.chat.id, "Got Photo!")
                         .reply_to_message_id(msg.id)
                         .await?;
-                    handle_photo_content(bot, msg.chat.id, msg.id, Some(content.clone())).await?;
-                    log::debug!("{:#?}", content);
+                    handle_photo_content(bot.clone(), msg.chat.id, msg.id, Some(content.clone()))
+                        .await?;
+                    //log::debug!("{:#?}", content);
                     // to download the photo
                 }
                 _ => {
@@ -162,6 +176,9 @@ async fn handle_message(bot: Bot, _dialogue: MyDialogue, msg: Message) -> Handle
         } //todo!(), // todo for media_kind
     };
     // }
+    let msg_id = hm.id;
+    log::debug!("message id: {:#?}", &msg_id);
+    bot.delete_message(msg.chat.id, msg_id).await?;
     Ok(())
 }
 
@@ -194,7 +211,7 @@ async fn handle_photo_content(
     // log::info!("object: {:#?}", full_url);
     match append_to_brain(&markdown) {
         Ok(()) => {
-            bot.send_message(chat_id, "Saved!")
+            bot.send_message(chat_id, "Saved photo!")
                 .reply_to_message_id(message_id)
                 .await?
         }
@@ -209,13 +226,13 @@ async fn handle_text_content(
     message_id: MessageId,
     message_text: Option<MediaText>,
 ) -> HandlerResult {
-    bot.send_message(chat_id, "Got text")
+    bot.send_message(chat_id, "Got text message")
         .reply_to_message_id(message_id)
         .await?;
 
     let content = message_text.unwrap();
     log::info!("text: {}", content.text);
-    log::debug!("object: {:#?}", content);
+    // log::debug!("object: {:#?}", content);
 
     for entity in content.entities.iter().filter(|e| match Some(&e.kind) {
         Some(MessageEntityKind::Url) => true,
@@ -260,7 +277,7 @@ async fn handle_text_content(
         // log::info!("object: {:#?}", full_url);
         match append_to_brain(&markdown) {
             Ok(()) => {
-                bot.send_message(chat_id, "Saved!")
+                bot.send_message(chat_id, "Saved text link!")
                     .reply_to_message_id(message_id)
                     .await?
             }
@@ -426,7 +443,6 @@ mod tests {
         let mut expected = "OF of pepe";
         assert_eq!(expected, the_response);
 
-
         _url = "https//fansly.com/happyhooha/posts";
         the_response = get_website_title(_url).await.unwrap();
         expected = "FSL of happyhooha";
@@ -464,15 +480,15 @@ mod tests {
     // thread 'tokio-runtime-worker' panicked at 'failed trying to parse >: https://thght.works/3vZX6<: RelativeUrlWithoutBase', telegram/src/main.rs:219:40
     //
     // // This has to be converted to a json object
-	// DEBUG telegram                          > object: MediaText {
-	//    text: "Santiago Zarate, [Jul 8, 2023 at 20:32]\nhttps://www.reddit.com/user/Remarkable-Goat-973/",
-	//    entities: [
-	//        MessageEntity {
-	//            kind: Url,
-	//            offset: 40,
-	//            length: 48,
-	//        },
-	//    ],
-	//}
+    // DEBUG telegram                          > object: MediaText {
+    //    text: "Santiago Zarate, [Jul 8, 2023 at 20:32]\nhttps://www.reddit.com/user/Remarkable-Goat-973/",
+    //    entities: [
+    //        MessageEntity {
+    //            kind: Url,
+    //            offset: 40,
+    //            length: 48,
+    //        },
+    //    ],
+    //}
     // * */
 }
