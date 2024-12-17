@@ -3,10 +3,22 @@ name = "cndk8"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+path = "src/lib/mod.rs"
+
+[[bin]]
+path = "src/rng.rs"
+name = "rng"
+
 [workspace]
-members = ["telegram" ]
-exclude = ["lab/", "duplicate_detection"]
+members = ["telegram" , "url-manager"]
+exclude = ["mi_acta_bot", "lab/", "duplicate_detection"]
 
 [dependencies]
+rand = "0.8.5"
+rand_pcg = "0.3.1"
+rand_seeder = "0.3.0"
+rayon = "1.8.1"
 scraper = "0.16.0"
+sqlx = { version = "0.7.4", features = ["runtime-tokio-native-tls", "postgres", "json"] }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
