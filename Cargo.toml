@@ -11,7 +11,7 @@ path = "src/rng.rs"
 name = "rng"
 
 [workspace]
-members = ["telegram" , "url-manager"]
+members = ["telegram"]
 exclude = ["mi_acta_bot", "lab/", "duplicate_detection"]
 
 [dependencies]
