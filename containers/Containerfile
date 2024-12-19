@@ -1,0 +1,10 @@
+# Build the application using the Rust 1.81 container image
+FROM registry.suse.com/bci/rust:1.81 as build
+
+# Set the working directory
+WORKDIR /opt/cndk8
+COPY . ./
+RUN cargo build --release
+RUN cargo test --release
+
+
