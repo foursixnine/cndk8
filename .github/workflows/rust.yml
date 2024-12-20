@@ -16,12 +16,12 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
     - name: Upload Telegram Bot
-      uses: actions/upload-artifact
+      uses: actions/upload-artifact@v2
       with:
         name: cndk8-telegram-bot
         path: target/release/telegram
     - name: Upload hello app
-      uses: actions/upload-artifact
+      uses: actions/upload-artifact@v2
       with:
         name: cndk8-hello
         path: target/release/cndk8
