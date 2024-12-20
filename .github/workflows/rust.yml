@@ -1,8 +1,5 @@
-name: Rust
-
+name: Rust Workflow
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -11,14 +8,41 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
     - name: Build
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+    - name: Upload Telegram Bot
+      uses: actions/upload-artifact
+      with:
+        name: cndk8-telegram-bot
+        path: target/release/telegram
+    - name: Upload hello app
+      uses: actions/upload-artifact
+      with:
+        name: cndk8-hello
+        path: target/release/cndk8
 
-## stage -> build app -> build containers -> deploy 
+  ### copilot helped here, lets see how many commits it takes to make it work:
+  upload:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: cndk8-telegram-bot 
+        path: ./telegram
+
+    - name: Publish to GitHub Packages
+      run: |
+        curl -u "${{ github.actor }}:${{ secrets.GH_TOKEN }}" \
+          -X POST "https://uploads.github.com/repos/${{ github.repository }}/releases/assets?name=cndk8.tar.gz" \
+          --header "Content-Type: application/gzip" \
+          --data-binary @./binary/cndk8-hello
+
+## stage -> build app -> build containers -> deploy
