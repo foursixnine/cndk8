@@ -1,7 +1,12 @@
 name: Rust Workflow
+
 on:
   pull_request:
     branches: [ "main" ]
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allows manual triggering
 
 env:
   CARGO_TERM_COLOR: always
@@ -27,7 +32,8 @@ jobs:
         path: target/release/cndk8
 
   ### copilot helped here, lets see how many commits it takes to make it work:
-  upload:
+  publish:
+    if: github.ref == 'refs/heads/main' && secrets.X_TOKEN != ''
     needs: build
     runs-on: ubuntu-latest
 
