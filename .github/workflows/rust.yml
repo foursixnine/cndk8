@@ -1,12 +1,15 @@
+---
+# copilot helped a lot here
 name: Rust Workflow
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main", "refactor"]
   push:
     branches:
       - main
-  workflow_dispatch: # Allows manual triggering
+  workflow_dispatch:
+  # Allows manual triggering
 
 env:
   CARGO_TERM_COLOR: always
@@ -14,44 +17,63 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        BUILD_TARGET: [release, dev]
+    outputs:
+      release_built: ${{ steps.set-output.outputs.release_built }}
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --release --verbose
-    - name: Run tests
-      run: cargo test --release --verbose
-    - name: Upload Telegram Bot
-      uses: actions/upload-artifact@v4
-      with:
-        name: cndk8-telegram-bot
-        path: target/release/telegram
-    - name: Upload hello app
-      uses: actions/upload-artifact@v4
-      with:
-        name: cndk8-hello
-        path: target/release/cndk8
+      - uses: actions/checkout@v4
+      - name: Build binaries in "${{ matrix.BUILD_TARGET }}" mode
+        run: cargo build --profile ${{ matrix.BUILD_TARGET }}
+      - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
+        run: cargo test --profile ${{ matrix.BUILD_TARGET }}
+      - name: Upload Telegram Bot
+        uses: actions/upload-artifact@v4
+        with:
+          name: cndk8-telegram-bot
+          path: target/--profile/telegram
+      - name: Upload hello app
+        uses: actions/upload-artifact@v4
+        with:
+          name: cndk8-hello
+          path: target/release/cndk8
 
-  ### copilot helped here, lets see how many commits it takes to make it work:
   publish:
-    if: github.ref == 'refs/heads/main' 
-    # if: github.ref == 'refs/heads/main' && secrets.X_TOKEN != ''
+    if: needs.build.outputs.release_built == 'true' && github.ref == 'refs/heads/main'
+    # Check if the branch is main
     environment: publishing
     needs: build
     runs-on: ubuntu-latest
+
     steps:
-    - name: Set token environment variable
-      run: echo "X_TOKEN=${{ secrets.X_TOKEN }}" >> $GITHUB_ENV
-    - name: Download artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: cndk8-telegram-bot 
-        path: ./telegram
-
-    - name: Publish to GitHub Packages
-      run: |
-        curl -u "${{ github.actor }}:${{ secrets.GH_TOKEN }}" \
-          -X POST "https://uploads.github.com/repos/${{ github.repository }}/releases/assets?name=cndk8.tar.gz" \
-          --header "Content-Type: application/gzip" \
-          --data-binary @./binary/cndk8-hello
-
-## stage -> build app -> build containers -> deploy
+      - name: Set token environment variable
+        run: echo "X_TOKEN=${{ secrets.X_TOKEN }}" >> $GITHUB_ENV
+      - name: Display structure of downloaded files
+        run: ls -lahR && pwd
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cndk8-hello
+          path: ./cndk8-hello
+      - name: Display structure of downloaded files
+        run: ls -lahR && pwd
+      - name: Download telegram
+        uses: actions/download-artifact@v4
+        with:
+          name: cndk8-telegram-bot
+          path: ./*telegram*
+      - name: Display files after download
+        run: ls -lahR && pwd
+      - name: Publish to GitHub Packages
+        run: |
+          curl -u "${{ github.actor }}:${{ secrets.GH_TOKEN }}" \
+            -X POST "https://uploads.github.com/repos/${{ github.repository }}/releases/assets?name=cndk8-hello.tar.gz" \
+            --header "Content-Type: application/gzip" \
+            --data-binary @./cndk8/cndk8-hello
+      - name: Publish telegram bot to GitHub Packages
+        run: |
+          curl -u "${{ github.actor }}:${{ secrets.GH_TOKEN }}" \
+            -X POST "https://uploads.github.com/repos/${{ github.repository }}/releases/assets?name=cndk8-telegram-bot.tar.gz" \
+            --header "Content-Type: application/gzip" \
+            --data-binary @./cndk8-telegram-bot/telegram
