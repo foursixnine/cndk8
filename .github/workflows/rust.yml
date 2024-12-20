@@ -21,12 +21,12 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
     - name: Upload Telegram Bot
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: cndk8-telegram-bot
         path: target/release/telegram
     - name: Upload hello app
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: cndk8-hello
         path: target/release/cndk8
@@ -42,7 +42,7 @@ jobs:
     - name: Set token environment variable
       run: echo "X_TOKEN=${{ secrets.X_TOKEN }}" >> $GITHUB_ENV
     - name: Download artifact
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: cndk8-telegram-bot 
         path: ./telegram
