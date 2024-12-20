@@ -33,11 +33,14 @@ jobs:
 
   ### copilot helped here, lets see how many commits it takes to make it work:
   publish:
-    if: github.ref == 'refs/heads/main' && secrets.X_TOKEN != ''
+    if: github.ref == 'refs/heads/main' 
+    # if: github.ref == 'refs/heads/main' && secrets.X_TOKEN != ''
+    environment: publishing
     needs: build
     runs-on: ubuntu-latest
-
     steps:
+    - name: Set token environment variable
+      run: echo "X_TOKEN=${{ secrets.X_TOKEN }}" >> $GITHUB_ENV
     - name: Download artifact
       uses: actions/download-artifact@v2
       with:
