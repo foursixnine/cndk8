@@ -41,16 +41,18 @@ jobs:
     steps:
     - name: Set token environment variable
       run: echo "X_TOKEN=${{ secrets.X_TOKEN }}" >> $GITHUB_ENV
+    - name: Display structure of downloaded files
+      run: ls -lahR && pwd
     - name: Download artifact
       uses: actions/download-artifact@v4
       with:
-        name: cndk8-telegram-bot 
-        path: ./telegram
+        name: cndk8-hello
+        path: ./cndk8
 
     - name: Publish to GitHub Packages
       run: |
         curl -u "${{ github.actor }}:${{ secrets.GH_TOKEN }}" \
-          -X POST "https://uploads.github.com/repos/${{ github.repository }}/releases/assets?name=cndk8.tar.gz" \
+          -X POST "https://uploads.github.com/repos/${{ github.repository }}/releases/assets?name=cndk8-hello.tar.gz" \
           --header "Content-Type: application/gzip" \
           --data-binary @./binary/cndk8-hello
 
