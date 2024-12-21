@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        BUILD_TARGET: [release, dev]
+        BUILD_TARGET: [release]
     outputs:
       release_built: ${{ steps.set-output.outputs.release_built }}
     steps:
@@ -32,15 +32,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cndk8-telegram-bot
-          path: target/--profile/telegram
+          path: target/${{ matrix.BUILD_TARGET }}/telegram
       - name: Upload hello app
         uses: actions/upload-artifact@v4
         with:
           name: cndk8-hello
-          path: target/release/cndk8
-
+          path: target/${{ matrix.BUILD_TARGET }}/cndk8
   publish:
-    if: needs.build.outputs.release_built == 'true' && github.ref == 'refs/heads/main'
+    if:  github.ref == 'refs/heads/main'
     # Check if the branch is main
     environment: publishing
     needs: build
@@ -51,29 +50,33 @@ jobs:
         run: echo "X_TOKEN=${{ secrets.X_TOKEN }}" >> $GITHUB_ENV
       - name: Display structure of downloaded files
         run: ls -lahR && pwd
-      - name: Download artifact
+      - name: Download hello app
         uses: actions/download-artifact@v4
         with:
           name: cndk8-hello
           path: ./cndk8-hello
-      - name: Display structure of downloaded files
-        run: ls -lahR && pwd
       - name: Download telegram
         uses: actions/download-artifact@v4
         with:
           name: cndk8-telegram-bot
-          path: ./*telegram*
+          path: ./cndk8-telegram-bot
       - name: Display files after download
         run: ls -lahR && pwd
-      - name: Publish to GitHub Packages
+      - name: Publish hello app to GitHub Packages
         run: |
           curl -u "${{ github.actor }}:${{ secrets.GH_TOKEN }}" \
             -X POST "https://uploads.github.com/repos/${{ github.repository }}/releases/assets?name=cndk8-hello.tar.gz" \
             --header "Content-Type: application/gzip" \
-            --data-binary @./cndk8/cndk8-hello
+            --data-binary @./cndk8-hello/cndk8
       - name: Publish telegram bot to GitHub Packages
         run: |
           curl -u "${{ github.actor }}:${{ secrets.GH_TOKEN }}" \
             -X POST "https://uploads.github.com/repos/${{ github.repository }}/releases/assets?name=cndk8-telegram-bot.tar.gz" \
             --header "Content-Type: application/gzip" \
             --data-binary @./cndk8-telegram-bot/telegram
+  #         extends: .list_files
+  # list_files:
+  #   steps:
+  #     if: needs.build.outputs.release_built == 'true'
+  #     run: ls -lahR target/${{ matrix.BUILD_TARGET }}
+
