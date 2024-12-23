@@ -11,8 +11,10 @@ path = "src/rng.rs"
 name = "rng"
 
 [workspace]
+name = "cndk8-tools"
 members = ["telegram"]
-exclude = ["mi_acta_bot", "lab/", "duplicate_detection"]
+exclude = ["mi_acta_bot", "lab/", "duplicate_detection", "url_manager"]
+
 
 [dependencies]
 rand = "0.8.5"

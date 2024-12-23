@@ -1,6 +1,7 @@
-use reqwest::header::*;
+use reqwest::{header::*, Error};
 use std::fs::OpenOptions;
 use std::io::{self, Write};
+use teloxide::error_handlers::{self, ErrorHandler};
 use teloxide::{
     dispatching::{dialogue, dialogue::InMemStorage, UpdateHandler},
     net::Download,
@@ -123,6 +124,10 @@ async fn flower(bot: Bot, msg: Message) -> HandlerResult {
 async fn start(bot: Bot, _dialogue: MyDialogue, msg: Message) -> HandlerResult {
     bot.send_message(msg.chat.id, "This is the start").await?;
     Ok(())
+}
+
+async fn error_handler(error: Error) {
+    todo!();
 }
 
 async fn handle_message(bot: Bot, _dialogue: MyDialogue, msg: Message) -> HandlerResult {
