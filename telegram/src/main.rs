@@ -1,3 +1,4 @@
+use log::warn;
 use reqwest::{header::*, Error};
 use std::fs::OpenOptions;
 use std::io::{self, Write};
@@ -57,8 +58,6 @@ enum Command {
     Start,
     #[command(description = "cancel stuff")]
     Cancel,
-    #[command(description = "flower stuff")]
-    Flower,
 }
 
 #[derive(Clone)]
@@ -91,7 +90,6 @@ fn update_handler() -> UpdateHandler<Box<dyn std::error::Error + Send + Sync + '
     let command_handler = teloxide::filter_command::<Command, _>()
         .branch(case![Command::Start].endpoint(start))
         .branch(case![Command::Help].endpoint(help))
-        .branch(case![Command::Flower].endpoint(flower))
         .branch(case![Command::Cancel].endpoint(cancel));
 
     let message_handler = Update::filter_message()
@@ -113,11 +111,6 @@ async fn help(bot: Bot, msg: Message) -> HandlerResult {
 async fn cancel(bot: Bot, msg: Message) -> HandlerResult {
     bot.send_message(msg.chat.id, "cancel has been invoked")
         .await?;
-    Ok(())
-}
-
-async fn flower(bot: Bot, msg: Message) -> HandlerResult {
-    bot.send_message(msg.chat.id, "hi").await?;
     Ok(())
 }
 
@@ -242,57 +235,86 @@ async fn handle_text_content(
     for entity in content.entities.iter().filter(|e| match Some(&e.kind) {
         Some(MessageEntityKind::Url) => true,
         None => {
-            log::info!("{} {}", chat_id, "MessageEntityKind Type not implemented");
+            log::info!(
+                "{} {}",
+                chat_id,
+                "MessageEntityKind Type not implemented, type is unkonwn"
+            );
             false
         }
-        _ => {
+        Some(MediaText) => {
             log::info!(
-                "{} {}: {:#?}",
+                "{} {}: {:#?}, {:#?},",
                 chat_id,
-                "MessageEntityKind Type not implemented",
-                e.kind
+                "MessageEntityKind Type not implemented yet properly for MediaText",
+                e.kind,
+                MediaText
             );
-            log::debug!("{:#?} not implemented", e.kind);
-            log::debug!("{:#?} not implemented", e);
-            false
+            true
         } // Some(MessageEntityKind::TextLink) => true,
     }) {
+        !todo!("TODO: Not implemented yet for TextLink");
         // TODO: thread 'tokio-runtime-worker' panicked at 'failed trying to parse >: https://thght.works/3vZX6<: RelativeUrlWithoutBase', telegram/src/main.rs:219:40
-        let text_url = &content.text[entity.offset..entity.offset + entity.length];
-        let text_part = &content.text[0..entity.offset];
-        let title_url = match get_website_title(text_url).await {
-            Ok(title) => title.to_string(),
-            Err(e) => {
-                log::debug!("{:?}\n error invoked from {}", e, line!());
-                "error in url".to_string()
+        match entity.kind {
+            MediaText => {
+                let markdown = content.text.clone();
+                // need to iterate over the entities in MediaText.entities, and properly format the markdown
+                log::debug!(
+                    "TODO: needs to be implemented for mediatext, so media->text->parse entities"
+                );
+                !todo!("Not implemented yet for MediaText");
+                log::debug!("{}", markdown)
             }
-        };
-
-        let markdown;
-        let real_url = &text_url.to_string();
-        let real_tex = &content.text.to_string();
-        if real_url != real_tex {
-            markdown = format!("- {} [{}]({})\n", text_part, title_url.trim(), text_url);
-        } else {
-            markdown = format!("- [{}]({})\n", title_url.trim(), text_url);
-        };
-        // let markdown = format!(format, text_part, text_url, entity.kind);
-        log::debug!("will insert:");
-        log::debug!("{}", markdown);
-        // log::info!("object: {:#?}", full_url);
-        match append_to_brain(&markdown) {
-            Ok(()) => {
-                bot.send_message(chat_id, "Saved text link!")
-                    .reply_to_message_id(message_id)
-                    .await?
+            _ => {
+                log::info!(
+                    "{} {}: {:#?}",
+                    chat_id,
+                    "MessageEntityKind Type not implemented",
+                    entity.kind
+                );
+                log::debug!("{:#?} not implemented", entity.kind);
+                log::debug!("{:#?} not implemented", entity);
             }
-            _ => panic!("{:?}", &markdown),
-        };
+        }
     }
 
     log::debug!("found {}", content.entities.len());
     Ok(())
 }
+
+// TODO: needs refactoring.
+//            MessageEntityKind::Url => {
+//                let text_url = &content.text[entity.offset..entity.length];
+//                let text_part = &content.text[0..entity.offset];
+//                let title_url = match get_website_title(text_url).await {
+//                    Ok(title) => title.to_string(),
+//                    Err(e) => {
+//                        log::debug!("{:?}\n error invoked from {}", e, line!());
+//                        "error in url".to_string()
+//                    }
+//                };
+//                log::debug!("Url detected");
+//                let markdown;
+//                let real_url = &text_url.to_string();
+//                let real_tex = &content.text.to_string();
+//                if real_url != real_tex {
+//                    markdown = format!("- {} [{}]({})\n", text_part, title_url.trim(), text_url);
+//                } else {
+//                    markdown = format!("- [{}]({})\n", title_url.trim(), text_url);
+//                };
+//                // let markdown = format!(format, text_part, text_url, entity.kind);
+//                log::debug!("will insert:");
+//                log::debug!("{}", markdown);
+//                // log::info!("object: {:#?}", full_url);
+//                match append_to_brain(&markdown) {
+//                    Ok(()) => {
+//                        bot.send_message(chat_id, "Saved text link!")
+//                            .reply_to_message_id(message_id)
+//                            .await?
+//                    }
+//                    _ => panic!("{:?}", &markdown),
+//                };
+//            }
 
 fn append_to_brain(text: &str) -> io::Result<()> {
     let mut file = OpenOptions::new()
