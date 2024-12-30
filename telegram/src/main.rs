@@ -28,14 +28,9 @@ type MyDialogue = Dialogue<State, InMemStorage<State>>;
 type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
 // this should be an env variable that can be set on runtime.
-fn get_brain_location() -> &'static String {
+fn get_brain_location() -> String {
     match std::env::var("BRAIN_LOCATION") {
-        Ok(location) => {
-            let brain_location: String;
-            brain_location = location;
-            log::info!("Brain location is: {}", &brain_location);
-            &brain_location
-        }
+        Ok(location) => location,
         Err(_) => panic!("Please set the BRAIN_LOCATION environment variable"),
     }
 }
