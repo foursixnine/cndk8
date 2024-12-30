@@ -28,9 +28,14 @@ type MyDialogue = Dialogue<State, InMemStorage<State>>;
 type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
 // this should be an env variable that can be set on runtime.
-fn get_brain_location() -> &'static str {
+fn get_brain_location() -> &'static String {
     match std::env::var("BRAIN_LOCATION") {
-        Ok(location) => location.to_owned().as_str(),
+        Ok(location) => {
+            let brain_location: String;
+            brain_location = location;
+            log::info!("Brain location is: {}", &brain_location);
+            &brain_location
+        }
         Err(_) => panic!("Please set the BRAIN_LOCATION environment variable"),
     }
 }
@@ -318,9 +323,10 @@ enum SecondBrainSupportedFormats {
 // TODO: ultimately, this will be part of SecondBrainManager api, so becomes only a call with just
 // markdown text to add.
 fn append_to_brain(text: &str, format: SecondBrainSupportedFormats) -> io::Result<()> {
+    let brain_location = get_brain_location();
     let mut file = OpenOptions::new()
         .append(true)
-        .open(BRAIN_LOCATION)
+        .open(brain_location)
         .unwrap();
     file.write_all(text.as_bytes())
         .expect("failed to write/append to brain");
