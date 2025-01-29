@@ -1,0 +1,16 @@
+[package]
+name = "cndk8"
+version = "0.1.0"
+edition = "2021"
+description = "cndk8 is a collection of tools for my Second Brain."
+homepage = "https://foursixnine.io/projects/cndk8/"
+repository = "https://github.com/foursixnine/cndk8"
+keywords = ["bots", "SecondBrain", "teloxide-bots", "telegram"]
+categories = ["command-line-utilities"]
+license = "GPL-3.0-only"
+
+[workspace]
+members = ["crates/*", "applications/*"] 
+resolver = "2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

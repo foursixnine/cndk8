@@ -1,0 +1,6 @@
+#!/usr/bin/env bash -e
+set LOGLEVEL=${LOGLEVEL:="info"}
+set TARGET=${TARGET:="-r"}
+set BRAIN_LOCATION=${BRAIN_LOCATION:="cndk8-links.md"}
+source applications/telegram/.env || (echo "can't rum bot, token not found" && exit 2)
+RUST_LOG=$LOGLEVEL cargo run ${TARGET} -p telegram |& tee log/tgrun-$(date +%s).log

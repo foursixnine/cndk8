@@ -1,0 +1,102 @@
+---
+# copilot helped a lot here
+name: Rust Workflow
+
+on:
+  pull_request:
+    branches: ["main", "refactor"]
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  # Allows manual triggering
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [cndk8-managers, telegram, cndk8]
+    outputs:
+      release_built: ${{ steps.set-output.outputs.release_built }}
+    steps:
+      - name: ⚡ Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions/checkout@v4
+      - name: Ouput rust version for educational purposes
+        run: rustup --version
+      - name: Build binaries in debug mode
+        run: cargo build  -p ${{ matrix.package }}
+      - name: Run tests in debug mode for per project
+        run: cargo test  -p ${{ matrix.package }}
+  build_nightly:
+    strategy:
+      matrix:
+        package: [cndk8-managers, telegram, cndk8]
+    runs-on: ubuntu-latest
+    outputs:
+      release_built: ${{ steps.set-output.outputs.release_built }}
+    steps:
+      - name: ⚡ Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions/checkout@v4
+      - name: Temporarily modify the rust toolchain version 
+        run: rustup override set nightly
+      - name: Ouput rust version for educational purposes
+        run: rustup --version
+      - name: Run tests in debug mode for per project
+        run: cargo test  -p ${{ matrix.package }}
+      - name: revert the override 
+        run: rustup override set nightly
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    # Check if the branch is main
+    environment: publishing
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: ⚡ Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Login into crates.io
+        run: cargo login ${{ secrets.CRATES_IO }}
+      - uses: actions/checkout@v4
+      - name: Build binaries in "release" mode
+        run: cargo build -r 
+      - name: "Package for crates.io"
+        run: cargo package
+      - name: "Publish to crates.io"
+        run: cargo publish
+      - name: Download hello app
+        uses: actions/download-artifact@v4
+        with:
+          name: cndk8-hello
+          path: ./cndk8-hello
+      - name: Publish hello app to GitHub Packages
+        run: |
+          curl -u "${{ github.actor }}:${{ secrets.GH_TOKEN }}" \
+            -X POST "https://uploads.github.com/repos/${{ github.repository }}/releases/assets?name=cndk8-hello.tar.gz" \
+            --header "Content-Type: application/gzip" \
+            --data-binary @./cndk8-hello/cndk8
